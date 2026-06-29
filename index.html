@@ -1,13 +1,390 @@
-A🦷 Dental Chart / مخطط الأسنان
-Adult / بالغ
-Pedo / أطفال
-Upper Jaw / الفك العلوي
 
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dental Chart / مخطط الأسنان</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: #F0FAFA;
+    padding: 10px;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .card {
+    background: #fff;
+    border: 2px solid #4AADA8;
+    border-radius: 12px;
+    padding: 12px;
+    max-width: 700px;
+    width: 100%;
+  }
+  .title {
+    text-align: center;
+    color: #1B3A6B;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  .mode-btns {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .mode-btn {
+    padding: 4px 14px;
+    border: 2px solid #4AADA8;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Cairo', sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    background: #fff;
+    color: #1B3A6B;
+    transition: background 0.2s, color 0.2s;
+  }
+  .mode-btn.active {
+    background: #1B3A6B;
+    color: #fff;
+  }
+  .jaw-label {
+    text-align: center;
+    color: #1B3A6B;
+    font-size: 10px;
+    font-weight: bold;
+    margin: 4px 0 2px;
+  }
+  svg { width: 100%; display: block; }
+  .divider {
+    border: none;
+    border-top: 1px dashed #4AADA8;
+    margin: 3px 0;
+  }
+  .marked-box {
+    text-align: center;
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: #F0FAFA;
+    border-radius: 8px;
+    color: #1B3A6B;
+    font-size: 10px;
+    min-height: 24px;
+  }
+  .btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .reset-btn {
+    padding: 5px 16px;
+    background: #C85A6E;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Cairo', sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+  }
+  .reset-btn:hover { background: #a8465a; }
+  .save-btn {
+    padding: 5px 16px;
+    background: #1B3A6B;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Cairo', sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+  }
+  .save-btn:hover { background: #142d55; }
+  .status-msg {
+    text-align: center;
+    font-size: 10px;
+    margin-top: 5px;
+    min-height: 14px;
+    color: #4AADA8;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="title">🦷 Dental Chart / مخطط الأسنان</div>
 
+  <div class="mode-btns">
+    <button class="mode-btn active" id="btn-adult" onclick="setMode('adult')">Adult / بالغ</button>
+    <button class="mode-btn" id="btn-pedo" onclick="setMode('pedo')">Pedo / أطفال</button>
+  </div>
 
-Lower Jaw / الفك السفلي
-Click tooth to mark / انقر على السن لتحديده
-إعادة تعيين / Reset
-حفظ / Save
+  <div class="jaw-label">Upper Jaw / الفك العلوي</div>
+  <svg id="svg-upper" viewBox="0 0 570 115"></svg>
 
-a
+  <hr class="divider">
+
+  <svg id="svg-lower" viewBox="0 0 570 115"></svg>
+  <div class="jaw-label">Lower Jaw / الفك السفلي</div>
+
+  <div class="marked-box" id="marked-box">Click tooth to mark / انقر على السن لتحديده</div>
+  
+  <div class="btn-row">
+    <button class="reset-btn" onclick="resetAll()">إعادة تعيين / Reset</button>
+    <button class="save-btn" onclick="saveChart()">حفظ / Save</button>
+  </div>
+  <div class="status-msg" id="status-msg"></div>
+</div>
+
+<script>
+// ── Get patient ID from URL ──────────────────────────────────
+const urlParams = new URLSearchParams(window.location.search);
+const patientId = urlParams.get('patient_id') || '';
+
+// ── Dimensions ──────────────────────────────────────────────
+const G = 3, TH = 34, VW = 570, VH = 115;
+const W = { c:26, l:24, ca:28, p:32, m:38 };
+const PW = { a:24, b:24, c:26, d:32, e:36 };
+
+// ── Adult X positions ────────────────────────────────────────
+const urX = [
+  280 - W.c,
+  280 - W.c - G - W.l,
+  280 - W.c - G - W.l - G - W.ca,
+  280 - W.c - G - W.l - G - W.ca - G - W.p,
+  280 - W.c - G - W.l - G - W.ca - G - W.p - G - W.p,
+  280 - W.c - G - W.l - G - W.ca - G - W.p - G - W.p - G - W.m,
+  280 - W.c - G - W.l - G - W.ca - G - W.p - G - W.p - G - W.m - G - W.m,
+  280 - W.c - G - W.l - G - W.ca - G - W.p - G - W.p - G - W.m - G - W.m - G - W.m,
+];
+const ulX = [
+  280,
+  280 + W.c + G,
+  280 + W.c + G + W.l + G,
+  280 + W.c + G + W.l + G + W.ca + G,
+  280 + W.c + G + W.l + G + W.ca + G + W.p + G,
+  280 + W.c + G + W.l + G + W.ca + G + W.p + G + W.p + G,
+  280 + W.c + G + W.l + G + W.ca + G + W.p + G + W.p + G + W.m + G,
+  280 + W.c + G + W.l + G + W.ca + G + W.p + G + W.p + G + W.m + G + W.m + G,
+];
+const upperY = [50,35,22,13,6,2,0,0,0,0,2,6,13,22,35,50];
+const lowerY = [20,35,48,57,64,68,70,70,70,70,68,64,57,48,35,20];
+
+const adultUpper = [
+  {id:"UR8",label:"8┘",x:urX[7],y:upperY[0],w:W.m},
+  {id:"UR7",label:"7┘",x:urX[6],y:upperY[1],w:W.m},
+  {id:"UR6",label:"6┘",x:urX[5],y:upperY[2],w:W.m},
+  {id:"UR5",label:"5┘",x:urX[4],y:upperY[3],w:W.p},
+  {id:"UR4",label:"4┘",x:urX[3],y:upperY[4],w:W.p},
+  {id:"UR3",label:"3┘",x:urX[2],y:upperY[5],w:W.ca},
+  {id:"UR2",label:"2┘",x:urX[1],y:upperY[6],w:W.l},
+  {id:"UR1",label:"1┘",x:urX[0],y:upperY[7],w:W.c},
+  {id:"UL1",label:"└1",x:ulX[0],y:upperY[8],w:W.c},
+  {id:"UL2",label:"└2",x:ulX[1],y:upperY[9],w:W.l},
+  {id:"UL3",label:"└3",x:ulX[2],y:upperY[10],w:W.ca},
+  {id:"UL4",label:"└4",x:ulX[3],y:upperY[11],w:W.p},
+  {id:"UL5",label:"└5",x:ulX[4],y:upperY[12],w:W.p},
+  {id:"UL6",label:"└6",x:ulX[5],y:upperY[13],w:W.m},
+  {id:"UL7",label:"└7",x:ulX[6],y:upperY[14],w:W.m},
+  {id:"UL8",label:"└8",x:ulX[7],y:upperY[15],w:W.m},
+];
+const adultLower = [
+  {id:"LR8",label:"8┐",x:urX[7],y:lowerY[0],w:W.m},
+  {id:"LR7",label:"7┐",x:urX[6],y:lowerY[1],w:W.m},
+  {id:"LR6",label:"6┐",x:urX[5],y:lowerY[2],w:W.m},
+  {id:"LR5",label:"5┐",x:urX[4],y:lowerY[3],w:W.p},
+  {id:"LR4",label:"4┐",x:urX[3],y:lowerY[4],w:W.p},
+  {id:"LR3",label:"3┐",x:urX[2],y:lowerY[5],w:W.ca},
+  {id:"LR2",label:"2┐",x:urX[1],y:lowerY[6],w:W.l},
+  {id:"LR1",label:"1┐",x:urX[0],y:lowerY[7],w:W.c},
+  {id:"LL1",label:"┌1",x:ulX[0],y:lowerY[8],w:W.c},
+  {id:"LL2",label:"┌2",x:ulX[1],y:lowerY[9],w:W.l},
+  {id:"LL3",label:"┌3",x:ulX[2],y:lowerY[10],w:W.ca},
+  {id:"LL4",label:"┌4",x:ulX[3],y:lowerY[11],w:W.p},
+  {id:"LL5",label:"┌5",x:ulX[4],y:lowerY[12],w:W.p},
+  {id:"LL6",label:"┌6",x:ulX[5],y:lowerY[13],w:W.m},
+  {id:"LL7",label:"┌7",x:ulX[6],y:lowerY[14],w:W.m},
+  {id:"LL8",label:"┌8",x:ulX[7],y:lowerY[15],w:W.m},
+];
+
+// ── Pedo ─────────────────────────────────────────────────────
+const ureX = [
+  280 - PW.a,
+  280 - PW.a - G - PW.b,
+  280 - PW.a - G - PW.b - G - PW.c,
+  280 - PW.a - G - PW.b - G - PW.c - G - PW.d,
+  280 - PW.a - G - PW.b - G - PW.c - G - PW.d - G - PW.e,
+];
+const uleX = [
+  280,
+  280 + PW.a + G,
+  280 + PW.a + G + PW.b + G,
+  280 + PW.a + G + PW.b + G + PW.c + G,
+  280 + PW.a + G + PW.b + G + PW.c + G + PW.d + G,
+];
+const pedoUpperY = [48,28,12,3,0,0,3,12,28,48];
+const pedoLowerY = [22,42,58,67,70,70,67,58,42,22];
+
+const pedoUpper = [
+  {id:"URE",label:"E┘",x:ureX[4],y:pedoUpperY[0],w:PW.e},
+  {id:"URD",label:"D┘",x:ureX[3],y:pedoUpperY[1],w:PW.d},
+  {id:"URC",label:"C┘",x:ureX[2],y:pedoUpperY[2],w:PW.c},
+  {id:"URB",label:"B┘",x:ureX[1],y:pedoUpperY[3],w:PW.b},
+  {id:"URA",label:"A┘",x:ureX[0],y:pedoUpperY[4],w:PW.a},
+  {id:"ULA",label:"└A",x:uleX[0],y:pedoUpperY[5],w:PW.a},
+  {id:"ULB",label:"└B",x:uleX[1],y:pedoUpperY[6],w:PW.b},
+  {id:"ULC",label:"└C",x:uleX[2],y:pedoUpperY[7],w:PW.c},
+  {id:"ULD",label:"└D",x:uleX[3],y:pedoUpperY[8],w:PW.d},
+  {id:"ULE",label:"└E",x:uleX[4],y:pedoUpperY[9],w:PW.e},
+];
+const pedoLower = [
+  {id:"LRE",label:"E┐",x:ureX[4],y:pedoLowerY[0],w:PW.e},
+  {id:"LRD",label:"D┐",x:ureX[3],y:pedoLowerY[1],w:PW.d},
+  {id:"LRC",label:"C┐",x:ureX[2],y:pedoLowerY[2],w:PW.c},
+  {id:"LRB",label:"B┐",x:ureX[1],y:pedoLowerY[3],w:PW.b},
+  {id:"LRA",label:"A┐",x:ureX[0],y:pedoLowerY[4],w:PW.a},
+  {id:"LLA",label:"┌A",x:uleX[0],y:pedoLowerY[5],w:PW.a},
+  {id:"LLB",label:"┌B",x:uleX[1],y:pedoLowerY[6],w:PW.b},
+  {id:"LLC",label:"┌C",x:uleX[2],y:pedoLowerY[7],w:PW.c},
+  {id:"LLD",label:"┌D",x:uleX[3],y:pedoLowerY[8],w:PW.d},
+  {id:"LLE",label:"┌E",x:uleX[4],y:pedoLowerY[9],w:PW.e},
+];
+
+// ── State ────────────────────────────────────────────────────
+let mode = 'adult';
+let selected = {};
+
+function getTeeth() {
+  return mode === 'adult'
+    ? { upper: adultUpper, lower: adultLower }
+    : { upper: pedoUpper, lower: pedoLower };
+}
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function buildSVG(svgElem, teeth) {
+  svgElem.innerHTML = '';
+  const line = svgEl('line', {
+    x1:280, y1:0, x2:280, y2:VH,
+    stroke:'#C85A6E', 'stroke-width':1.5, 'stroke-dasharray':'4,3'
+  });
+  svgElem.appendChild(line);
+
+  for (const tooth of teeth) {
+    const g = svgEl('g', { style:'cursor:pointer' });
+    const rect = svgEl('rect', {
+      x: tooth.x, y: tooth.y, width: tooth.w, height: TH, rx: 4,
+      fill: selected[tooth.id] ? '#4AADA8' : '#fff',
+      stroke: selected[tooth.id] ? '#1B3A6B' : '#4AADA8',
+      'stroke-width': 1.5
+    });
+    const label = svgEl('text', {
+      x: tooth.x + tooth.w / 2,
+      y: tooth.y + TH - 4,
+      'text-anchor': 'middle',
+      'font-size': 7,
+      'font-weight': 'bold',
+      'font-family': 'Cairo, sans-serif',
+      fill: selected[tooth.id] ? '#fff' : '#1B3A6B'
+    });
+    label.textContent = tooth.label;
+    g.appendChild(rect);
+    g.appendChild(label);
+    g.addEventListener('click', () => toggle(tooth.id));
+    svgElem.appendChild(g);
+  }
+}
+
+function render() {
+  const { upper, lower } = getTeeth();
+  buildSVG(document.getElementById('svg-upper'), upper);
+  buildSVG(document.getElementById('svg-lower'), lower);
+  updateMarkedBox();
+}
+
+function toggle(id) {
+  if (selected[id]) delete selected[id];
+  else selected[id] = true;
+  render();
+}
+
+function updateMarkedBox() {
+  const { upper, lower } = getTeeth();
+  const all = [...upper, ...lower];
+  const keys = Object.keys(selected);
+  const box = document.getElementById('marked-box');
+  if (keys.length === 0) {
+    box.textContent = 'Click tooth to mark / انقر على السن لتحديده';
+  } else {
+    const labels = keys.map(id => {
+      const t = all.find(t => t.id === id);
+      return t ? t.label : id;
+    }).join(', ');
+    box.textContent = 'Marked / المحددة: ' + labels;
+  }
+}
+
+function setMode(m) {
+  mode = m;
+  selected = {};
+  document.getElementById('btn-adult').classList.toggle('active', m === 'adult');
+  document.getElementById('btn-pedo').classList.toggle('active', m === 'pedo');
+  render();
+}
+
+function resetAll() {
+  selected = {};
+  render();
+}
+
+// ── Save to Bubble ───────────────────────────────────────────
+function saveChart() {
+  if (!patientId) {
+    document.getElementById('status-msg').textContent = 'No patient ID / لا يوجد معرف مريض';
+    return;
+  }
+  const chartData = JSON.stringify({ mode: mode, selected: selected });
+  fetch('https://lumina-dental-center.bubbleapps.io/api/1.1/wf/save_dental_chart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ patient_id: patientId, chart_data: chartData })
+  })
+  .then(r => r.json())
+  .then(() => {
+    document.getElementById('status-msg').textContent = 'Saved successfully! / تم الحفظ بنجاح!';
+    setTimeout(() => { document.getElementById('status-msg').textContent = ''; }, 3000);
+  })
+  .catch(() => {
+    document.getElementById('status-msg').textContent = 'Error saving / خطأ في الحفظ';
+  });
+}
+
+// ── Load from URL data ───────────────────────────────────────
+const savedData = urlParams.get('chart_data');
+if (savedData) {
+  try {
+    const parsed = JSON.parse(decodeURIComponent(savedData));
+    if (parsed.mode) mode = parsed.mode;
+    if (parsed.selected) selected = parsed.selected;
+    if (mode === 'pedo') {
+      document.getElementById('btn-adult').classList.remove('active');
+      document.getElementById('btn-pedo').classList.add('active');
+    }
+  } catch(e) {}
+}
+
+// ── Init ─────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
